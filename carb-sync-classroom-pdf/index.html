@@ -1,15 +1,553 @@
-
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Simulateur de synchronisation — Version classe</title>
-    <meta name="description" content="Simulateur interactif de synchronisation de carburateurs (mode classe/examen, export CSV & PDF)." />
-    <style> html, body, #root { height: 100%; margin: 0; background: #F3F4F6; } </style>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carb Sync Classroom - Simulateur</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            padding: 40px 20px;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .panel h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        input[type="range"], input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+        
+        input[type="range"] {
+            padding: 8px 12px;
+        }
+        
+        input[type="number"]:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .value-display {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .reset-btn {
+            background: #e74c3c;
+        }
+        
+        .reset-btn:hover {
+            background: #c0392b;
+        }
+        
+        .visualization {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .carb-display {
+            text-align: center;
+        }
+        
+        .carb-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            animation: rotate 2s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .carb-icon.stopped {
+            animation: none;
+        }
+        
+        .status {
+            font-size: 1.2em;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .rpm-display {
+            font-size: 2.5em;
+            color: #667eea;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        
+        .results {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .result-row:last-child {
+            border-bottom: none;
+        }
+        
+        .result-label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .result-value {
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .indicator {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .indicator-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            padding: 12px;
+            border-radius: 5px;
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .warning.show {
+            display: block;
+        }
+        
+        .info-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            grid-column: 1 / -1;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .info-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .info-card .number {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .info-card .label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Carb Sync Classroom</h1>
+            <p>Simulateur de synchronisation de carburateur</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="panel">
+                <h2>⚙️ Contrôles</h2>
+                
+                <div class="input-group">
+                    <label>
+                        Vitesse moteur (RPM)
+                        <span class="value-display" id="rpmDisplay">1000</span>
+                    </label>
+                    <input type="range" id="rpmSlider" min="500" max="5000" value="1000" step="100">
+                </div>
+                
+                <div class="input-group">
+                    <label>
+                        Richesse du mélange (%)
+                        <span class="value-display" id="richDisplay">50</span>
+                    </label>
+                    <input type="range" id="richSlider" min="0" max="100" value="50" step="5">
+                    <div class="indicator">
+                        <div class="indicator-fill" id="richIndicator" style="width: 50%"></div>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label>
+                        Angle du papillon (°)
+                        <span class="value-display" id="throttleDisplay">0</span>
+                    </label>
+                    <input type="range" id="throttleSlider" min="0" max="90" value="0" step="5">
+                    <div class="indicator">
+                        <div class="indicator-fill" id="throttleIndicator" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label>Numéro de carburateur</label>
+                    <input type="number" id="carbNumber" min="1" max="4" value="1" step="1">
+                </div>
+                
+                <div class="button-group">
+                    <button id="startBtn">▶️ Démarrer</button>
+                    <button id="stopBtn" disabled>⏹️ Arrêter</button>
+                    <button class="reset-btn" id="resetBtn">🔄 Réinitialiser</button>
+                </div>
+                
+                <div class="warning" id="warning">
+                    ⚠️ Attention : Mélange trop pauvre! Risque de calage moteur.
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h2>📊 Visualisation</h2>
+                <div class="visualization">
+                    <div class="carb-display">
+                        <div class="carb-icon" id="carbIcon">⚙️</div>
+                        <div class="status" id="status">Arrêté</div>
+                        <div class="rpm-display" id="rpmDisplay2">0 RPM</div>
+                    </div>
+                </div>
+                
+                <div class="results">
+                    <div class="result-row">
+                        <span class="result-label">État :</span>
+                        <span class="result-value" id="resultStatus">Arrêté</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">Consommation :</span>
+                        <span class="result-value" id="resultConsume">0 L/h</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">Efficacité :</span>
+                        <span class="result-value" id="resultEfficiency">0%</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">Synchronisation :</span>
+                        <span class="result-value" id="resultSync">Non synchronisé</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <h2>📈 Statistiques en temps réel</h2>
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="number" id="statRPM">0</div>
+                    <div class="label">RPM actuels</div>
+                </div>
+                <div class="info-card">
+                    <div class="number" id="statPower">0</div>
+                    <div class="label">Puissance (ch)</div>
+                </div>
+                <div class="info-card">
+                    <div class="number" id="statTemp">20</div>
+                    <div class="label">Température (°C)</div>
+                </div>
+                <div class="info-card">
+                    <div class="number" id="statSync">0</div>
+                    <div class="label">Synchronisation (%)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const state = {
+            running: false,
+            rpm: 1000,
+            richness: 50,
+            throttle: 0,
+            carbNum: 1,
+            startTime: null
+        };
+
+        const elements = {
+            rpmSlider: document.getElementById('rpmSlider'),
+            rpmDisplay: document.getElementById('rpmDisplay'),
+            rpmDisplay2: document.getElementById('rpmDisplay2'),
+            richSlider: document.getElementById('richSlider'),
+            richDisplay: document.getElementById('richDisplay'),
+            richIndicator: document.getElementById('richIndicator'),
+            throttleSlider: document.getElementById('throttleSlider'),
+            throttleDisplay: document.getElementById('throttleDisplay'),
+            throttleIndicator: document.getElementById('throttleIndicator'),
+            carbNumber: document.getElementById('carbNumber'),
+            startBtn: document.getElementById('startBtn'),
+            stopBtn: document.getElementById('stopBtn'),
+            resetBtn: document.getElementById('resetBtn'),
+            carbIcon: document.getElementById('carbIcon'),
+            status: document.getElementById('status'),
+            warning: document.getElementById('warning'),
+            resultStatus: document.getElementById('resultStatus'),
+            resultConsume: document.getElementById('resultConsume'),
+            resultEfficiency: document.getElementById('resultEfficiency'),
+            resultSync: document.getElementById('resultSync'),
+            statRPM: document.getElementById('statRPM'),
+            statPower: document.getElementById('statPower'),
+            statTemp: document.getElementById('statTemp'),
+            statSync: document.getElementById('statSync')
+        };
+
+        function updateDisplay() {
+            elements.rpmDisplay.textContent = state.rpm;
+            elements.richDisplay.textContent = state.richness;
+            elements.throttleDisplay.textContent = state.throttle;
+            elements.richIndicator.style.width = state.richness + '%';
+            elements.throttleIndicator.style.width = state.throttle + '%';
+        }
+
+        function calculateStats() {
+            if (!state.running) return;
+
+            const richness = state.richness;
+            const efficiency = Math.max(0, Math.min(100, 100 - Math.abs(richness - 55) * 2));
+            const consumption = (state.rpm / 1000) * (1 + (richness - 50) / 100);
+            const power = (state.rpm / 5000) * 100;
+            const temperature = 20 + (state.rpm / 50) + (richness - 50) / 2;
+            const syncLevel = Math.max(0, 100 - Math.abs(state.throttle * 2));
+
+            elements.rpmDisplay2.textContent = state.rpm + ' RPM';
+            elements.resultConsume.textContent = consumption.toFixed(2) + ' L/h';
+            elements.resultEfficiency.textContent = efficiency.toFixed(1) + '%';
+            elements.statRPM.textContent = state.rpm;
+            elements.statPower.textContent = power.toFixed(1);
+            elements.statTemp.textContent = Math.round(temperature);
+            elements.statSync.textContent = syncLevel.toFixed(0);
+
+            if (richness < 40) {
+                elements.warning.classList.add('show');
+                elements.resultSync.textContent = '🔴 Mélange pauvre';
+            } else if (richness > 65) {
+                elements.warning.classList.add('show');
+                elements.resultSync.textContent = '🔴 Mélange riche';
+            } else {
+                elements.warning.classList.remove('show');
+                elements.resultSync.textContent = '🟢 Synchronisé';
+            }
+        }
+
+        function animate() {
+            if (state.running) {
+                if (elements.carbIcon.classList.contains('stopped')) {
+                    elements.carbIcon.classList.remove('stopped');
+                }
+                calculateStats();
+            } else {
+                elements.carbIcon.classList.add('stopped');
+            }
+            requestAnimationFrame(animate);
+        }
+
+        elements.startBtn.addEventListener('click', () => {
+            state.running = true;
+            state.startTime = Date.now();
+            elements.startBtn.disabled = true;
+            elements.stopBtn.disabled = false;
+            elements.status.textContent = '🟢 En fonctionnement';
+            elements.resultStatus.textContent = 'En fonctionnement';
+            elements.rpmSlider.disabled = false;
+            elements.richSlider.disabled = false;
+            elements.throttleSlider.disabled = false;
+        });
+
+        elements.stopBtn.addEventListener('click', () => {
+            state.running = false;
+            elements.startBtn.disabled = false;
+            elements.stopBtn.disabled = true;
+            elements.status.textContent = '⏹️ Arrêté';
+            elements.resultStatus.textContent = 'Arrêté';
+            elements.rpmDisplay2.textContent = '0 RPM';
+            elements.resultConsume.textContent = '0 L/h';
+            elements.resultEfficiency.textContent = '0%';
+            elements.warning.classList.remove('show');
+        });
+
+        elements.resetBtn.addEventListener('click', () => {
+            state.running = false;
+            state.rpm = 1000;
+            state.richness = 50;
+            state.throttle = 0;
+            state.carbNum = 1;
+            
+            elements.rpmSlider.value = 1000;
+            elements.richSlider.value = 50;
+            elements.throttleSlider.value = 0;
+            elements.carbNumber.value = 1;
+            
+            elements.startBtn.disabled = false;
+            elements.stopBtn.disabled = true;
+            elements.status.textContent = 'Arrêté';
+            elements.resultStatus.textContent = 'Arrêté';
+            
+            updateDisplay();
+            elements.carbIcon.classList.add('stopped');
+            elements.rpmDisplay2.textContent = '0 RPM';
+            elements.resultConsume.textContent = '0 L/h';
+            elements.resultEfficiency.textContent = '0%';
+            elements.resultSync.textContent = 'Non synchronisé';
+            elements.warning.classList.remove('show');
+        });
+
+        elements.rpmSlider.addEventListener('input', (e) => {
+            state.rpm = parseInt(e.target.value);
+            updateDisplay();
+        });
+
+        elements.richSlider.addEventListener('input', (e) => {
+            state.richness = parseInt(e.target.value);
+            updateDisplay();
+        });
+
+        elements.throttleSlider.addEventListener('input', (e) => {
+            state.throttle = parseInt(e.target.value);
+            updateDisplay();
+        });
+
+        elements.carbNumber.addEventListener('input', (e) => {
+            state.carbNum = parseInt(e.target.value);
+        });
+
+        updateDisplay();
+        animate();
+    </script>
+</body>
 </html>
